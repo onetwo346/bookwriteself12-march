@@ -226,17 +226,17 @@ async function generateBook() {
   const doc = new jsPDF();
   doc.setFontSize(12);
   doc.text(`${title}\n\nBy ${author}\n\n${content}`, 10, 10, { maxWidth: 180 });
-  const pdfBase64 = doc.output("datauristring"); // Save as base64 string
+  const pdfBase64 = doc.output("datauristring");
 
   const newBook = { title, author, description, filePath: pdfBase64 };
   books.push(newBook);
-  localStorage.setItem("bookShrineBooks", JSON.stringify(books)); // Save to localStorage
+  localStorage.setItem("bookShrineBooks", JSON.stringify(books));
   return newBook;
 }
 
-// Auto-generate books
+// Auto-generate books synchronously
 async function autoGenerateBooks() {
-  const booksToGenerate = 3; // 3 per visit—adjust as needed
+  const booksToGenerate = 3; // 3 per load—adjust as needed
   const newBooks = [];
   for (let i = 0; i < booksToGenerate; i++) {
     try {
@@ -247,13 +247,11 @@ async function autoGenerateBooks() {
       console.error("Error generating book:", error);
     }
   }
-  displayBooks(books);
   return newBooks;
 }
 
 // Chatbot Response
 let lastBookRecommended = null;
-let lastQuery = null;
 let latestBooks = [];
 
 async function chatbotResponse(message) {
@@ -261,17 +259,17 @@ async function chatbotResponse(message) {
   let response = "";
 
   if (msg === "hi" || msg === "hello") {
-    response = "Greetings, cosmic traveler! The archive grows eternal—ask me anything!";
+    response = "Greetings, cosmic traveler! The archive expands with every visit—ask me anything!";
   } else if (msg.includes("how many books") || msg.includes("number of books")) {
-    response = `The Cosmic Archive holds ${books.length} books, forged by AI and preserved forever!`;
+    response = `The Cosmic Archive holds ${books.length} books, eternally growing!`;
   } else if (msg.includes("best book") || msg.includes("recommend a book")) {
     const bestBook = books[Math.floor(Math.random() * books.length)];
     lastBookRecommended = bestBook;
     response = `Try "${bestBook.title}" by ${bestBook.author}—a ${bestBook.description}.`;
   } else if (msg.includes("new books") || msg.includes("what’s new")) {
     response = latestBooks.length > 0
-      ? `Fresh cosmic drops: ${latestBooks.map(b => `"${b.title}" by ${b.author}`).join(", ")}. The archive expands!`
-      : "More cosmic tales are forging—check back soon!";
+      ? `Fresh cosmic drops: ${latestBooks.map(b => `"${b.title}" by ${b.author}`).join(", ")}. The archive thrives!`
+      : "The cosmic forge is quiet—new tales just landed!";
   } else if (msg.includes("what is book shrine")) {
     response = `${bookShrineInfo.about} ${bookShrineInfo.mission}`;
   } else {
@@ -332,7 +330,7 @@ chatbotCore.addEventListener("click", () => {
   clickSound.play();
   chatbotWindow.classList.toggle("hidden");
   if (!chatbotWindow.classList.contains("hidden") && chatbotMessages.children.length === 0) {
-    addMessage("Welcome to BookShrine! The archive grows forever—ask me what’s new!", "bot");
+    addMessage("Welcome to BookShrine! New cosmic tales await—ask me what’s new!", "bot");
   }
 });
 
@@ -402,19 +400,11 @@ currentX = window.innerWidth - 70;
 currentY = window.innerHeight - 70;
 setChatbotPosition(currentX, currentY);
 
-// Initial Display and Auto-Generation
-displayBooks(books);
-autoGenerateBooks().then(newBooks => {
-  latestBooks = newBooks;
-});
-
-// Simulate daily drops (every 24 hours if open)
-setInterval(() => {
-  autoGenerateBooks().then(newBooks => {
-    latestBooks = newBooks;
-    console.log("New cosmic batch added to the archive!");
-  });
-}, 24 * 60 * 60 * 1000);
+// Initial Load with Generation
+(async () => {
+  latestBooks = await autoGenerateBooks(); // Generate books first
+  displayBooks(books); // Then display
+})();
 
 // Resize Handler
 window.addEventListener("resize", () => {

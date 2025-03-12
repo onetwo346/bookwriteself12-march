@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Shrine</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Design by Kofi Fosu | cosmoscoderr@gmail.com -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N5YK1HWR7X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N5YK1HWR7X');
+  </script>
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <canvas id="cosmic-canvas"></canvas>
+
+  <div id="intro-page">
+    <img src="shrinelogo.jpg" alt="Shrine Logo" class="intro-logo">
+    <div class="cosmic-text">
+      <h1>Welcome to <span class="highlight">Book Shrine</span></h1>
+      <p>A galactic archive of stories. Explore. Read. Transcend.</p>
+    </div>
+    <button id="start-button" class="warp-button">Enter the Shrine</button>
+    <div id="portal-overlay" class="hidden">
+      <div class="warp-effect"></div>
+    </div>
+  </div>
+
+  <div id="main-page" class="hidden">
+    <header>
+      <h1 class="neon-title">Book Shrine</h1>
+      <input type="text" id="search" class="cosmic-input" placeholder="Seek Knowledge..." oninput="searchBooks()">
+    </header>
+
+    <main>
+      <div class="book-grid">
+        <!-- Books dynamically added here -->
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <p>Design by <strong>Kofi Fosu</strong> | <a href="mailto:cosmoscoderr@gmail.com">cosmoscoderr@gmail.com</a></p>
+        <div class="donation-container">
+          <p>Support the cosmic journey!</p>
+          <a href="#donate" class="donate-link">
+            <img src="donate.jpg" alt="Donate" class="donate-img">
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <div class="cosmic-chat" id="chatbot-draggable">
+      <div id="chatbot-core" class="chat-orb"></div>
+      <div id="chatbot-window" class="hidden cosmic-panel">
+        <button id="close-chatbot" class="close-button">X</button>
+        <div id="chatbot-messages" class="message-field"></div>
+        <div class="chat-input-container">
+          <input type="text" id="chatbot-input" class="cosmic-input" placeholder="Ask the Shrine...">
+          <button id="send-button" class="cosmic-button">Send Signal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="click-sound" src="https://github.com/username/repo/raw/main/click.mp3"></audio>
+  <audio id="universe-sound" src="https://github.com/username/repo/raw/main/universe.mp3"></audio>
+  <script src="script.js"></script>
+</body>
+</html>

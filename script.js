@@ -1,7 +1,7 @@
 // script.js
 // Design by Kofi Fosu | cosmoscoderr@gmail.com
 
-const initialBooks = [
+const books = [
   { title: "Whispers of the Heart", author: "Kofi Fosu", description: "A classic romance full of passion.", filePath: "Whispers-of-the-Heart.pdf" },
   { title: "Ancestors Hammer", author: "Kofi Fosu", description: "Fantasy Adventure.", filePath: "ancestor-hammer.pdf" },
   { title: "Deeper than Ocean", author: "Kofi Fosu", description: "Romance.", filePath: "Deeper-than-Ocean.pdf" },
@@ -13,9 +13,6 @@ const initialBooks = [
   { title: "The Void Wanderer", author: "Cosmos Coderr", description: "Science Fiction/Fantasy.", filePath: "The-Void-Wanderer.pdf" },
   { title: "The Silent Architect", author: "Cosmos Coderr", description: "Science Fiction/Mystery.", filePath: "The-silent-Architect.pdf" },
 ];
-
-// Load books from localStorage or use initialBooks
-let books = JSON.parse(localStorage.getItem("bookShrineBooks")) || initialBooks;
 
 const bookShrineInfo = {
   about: "Book Shrine is a celestial digital library created by Kofi Fosu that houses unique works of fiction across multiple genres including romance, science fiction, fantasy, and adventure.",
@@ -44,7 +41,7 @@ const clickSound = document.getElementById("click-sound");
 const universeSound = document.getElementById("universe-sound");
 
 // OpenAI API Key (replace with your own)
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = "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"; // Get from platform.openai.com
 
 // Cosmic Background
 canvas.width = window.innerWidth;
@@ -92,7 +89,7 @@ startButton.addEventListener("click", () => {
 
 // Display Books
 function displayBooks(booksToShow) {
-  bookGrid.innerHTML = `<h3 class="archive-count">Cosmic Archive: ${books.length} Books</h3>` + booksToShow.map(book => `
+  bookGrid.innerHTML = booksToShow.map(book => `
     <div class="book-item">
       <h2>${book.title}</h2>
       <p>${book.author}</p>
@@ -126,7 +123,7 @@ function displayBooks(booksToShow) {
   });
 }
 
-// Open Book Popup
+// Open Book Popup (Adjusted PDF Size)
 function openBookPopup(filePath, bookItem) {
   const overlay = document.createElement("div");
   overlay.className = "popup-overlay";
@@ -165,6 +162,15 @@ function openBookPopup(filePath, bookItem) {
     iframe.style.transform = `scale(${scale})`;
   });
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    iframe.addEventListener("load", () => {
+      if (!iframe.contentWindow.document.body.innerHTML) {
+        popup.querySelector(".mobile-fallback").style.display = "block";
+      }
+    });
+  }
+
   const closeButton = popup.querySelector(".close-popup");
   closeButton.addEventListener("click", () => document.body.removeChild(overlay));
   overlay.addEventListener("click", (e) => {
@@ -191,6 +197,7 @@ async function generateBook() {
   const title = `The ${theme.split(" ")[0].charAt(0).toUpperCase() + theme.split(" ")[0].slice(1)} ${theme.split(" ")[1].charAt(0).toUpperCase() + theme.split(" ")[1].slice(1)}`;
   const author = cosmicAuthors[Math.floor(Math.random() * cosmicAuthors.length)];
 
+  // Generate description
   const descPrompt = `Write a 50-word description for a ${genre} book titled "${title}" about ${theme}. Make it cosmic and exciting!`;
   const descResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -207,6 +214,7 @@ async function generateBook() {
   const descData = await descResponse.json();
   const description = descData.choices[0].message.content.trim();
 
+  // Generate content (short for demo—expand later)
   const contentPrompt = `Write a 1000-word ${genre} story titled "${title}" about ${theme}. Infuse it with cosmic energy and vivid imagery.`;
   const contentResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -223,20 +231,21 @@ async function generateBook() {
   const contentData = await contentResponse.json();
   const content = contentData.choices[0].message.content.trim();
 
+  // Generate PDF with jsPDF
   const doc = new jsPDF();
   doc.setFontSize(12);
   doc.text(`${title}\n\nBy ${author}\n\n${content}`, 10, 10, { maxWidth: 180 });
-  const pdfBase64 = doc.output("datauristring");
+  const pdfBlob = doc.output("blob");
+  const filePath = URL.createObjectURL(pdfBlob);
 
-  const newBook = { title, author, description, filePath: pdfBase64 };
+  const newBook = { title, author, description, filePath };
   books.push(newBook);
-  localStorage.setItem("bookShrineBooks", JSON.stringify(books));
   return newBook;
 }
 
-// Auto-generate books synchronously
+// Auto-generate books
 async function autoGenerateBooks() {
-  const booksToGenerate = 3; // 3 per load—adjust as needed
+  const booksToGenerate = 3; // 3 new books per "day"—adjust based on API limits
   const newBooks = [];
   for (let i = 0; i < booksToGenerate; i++) {
     try {
@@ -247,11 +256,13 @@ async function autoGenerateBooks() {
       console.error("Error generating book:", error);
     }
   }
+  displayBooks(books); // Refresh grid
   return newBooks;
 }
 
-// Chatbot Response
+// Chatbot Response with OpenAI Integration
 let lastBookRecommended = null;
+let lastQuery = null;
 let latestBooks = [];
 
 async function chatbotResponse(message) {
@@ -259,24 +270,67 @@ async function chatbotResponse(message) {
   let response = "";
 
   if (msg === "hi" || msg === "hello") {
-    response = "Greetings, cosmic traveler! The archive expands with every visit—ask me anything!";
+    const greetings = [
+      "Greetings, cosmic traveler! How may I assist you today?",
+      "Hello, seeker of stories! What brings you to the Book Shrine?",
+      "Welcome back, explorer! How can I guide you today?"
+    ];
+    response = greetings[Math.floor(Math.random() * greetings.length)];
+  } else if (msg.includes("how are you") || msg.includes("how was your day")) {
+    const feelings = [
+      "I'm doing well, thank you! How about you?",
+      "My day has been peaceful, filled with the whispers of countless stories.",
+      "I'm great! Ready to help you find your next adventure."
+    ];
+    response = feelings[Math.floor(Math.random() * feelings.length)];
+    lastQuery = "how_are_you";
+  } else if (lastQuery === "how_are_you" && (msg.includes("good") || msg.includes("fine") || msg.includes("well"))) {
+    response = "That's great to hear! What can I help you with today?";
+    lastQuery = null;
+  } else if (msg.includes("what is book shrine") || msg.includes("tell me about book shrine")) {
+    response = `${bookShrineInfo.about} ${bookShrineInfo.mission}`;
   } else if (msg.includes("how many books") || msg.includes("number of books")) {
-    response = `The Cosmic Archive holds ${books.length} books, eternally growing!`;
+    response = `We currently house ${books.length} unique books in our celestial library—and more arrive daily from the cosmos!`;
   } else if (msg.includes("best book") || msg.includes("recommend a book")) {
-    const bestBook = books[Math.floor(Math.random() * books.length)];
+    const bestBook = books.find(book => book.title.toLowerCase().includes("heaven bound")) || books[0];
     lastBookRecommended = bestBook;
-    response = `Try "${bestBook.title}" by ${bestBook.author}—a ${bestBook.description}.`;
+    response = `I recommend "${bestBook.title}" by ${bestBook.author}. It's a ${bestBook.description}.`;
+  } else if (msg.includes("tell me more") && lastBookRecommended) {
+    response = `"${lastBookRecommended.title}" by ${lastBookRecommended.author} is about ${lastBookRecommended.description}. Would you like to read it?`;
+  } else if (msg.includes("book about") || msg.includes("find a book")) {
+    const keyword = msg.split("about")[1]?.trim() || msg.split("find a book")[1]?.trim();
+    if (keyword) {
+      const matchingBooks = books.filter(book =>
+        book.title.toLowerCase().includes(keyword) || book.description.toLowerCase().includes(keyword)
+      );
+      if (matchingBooks.length > 0) {
+        response = `Here are some books related to "${keyword}":\n` +
+          matchingBooks.map(book => `- "${book.title}" by ${book.author}: ${book.description}`).join("\n");
+      } else {
+        response = `No books found related to "${keyword}". Try another genre or topic!`;
+      }
+    } else {
+      response = "What kind of book are you looking for?";
+    }
+  } else if (msg.includes("genres") || msg.includes("types of books")) {
+    response = `We have books in the following genres:\n${bookShrineInfo.genres.join(", ")}.`;
+  } else if (msg.includes("contact") || msg.includes("email")) {
+    response = `You can reach out to Kofi Fosu at ${bookShrineInfo.contact}.`;
+  } else if (msg.includes("who created") || msg.includes("creator")) {
+    response = `Book Shrine was created by ${bookShrineInfo.creator}. ${bookShrineInfo.founded}`;
   } else if (msg.includes("new books") || msg.includes("what’s new")) {
     response = latestBooks.length > 0
-      ? `Fresh cosmic drops: ${latestBooks.map(b => `"${b.title}" by ${b.author}`).join(", ")}. The archive thrives!`
-      : "The cosmic forge is quiet—new tales just landed!";
-  } else if (msg.includes("what is book shrine")) {
-    response = `${bookShrineInfo.about} ${bookShrineInfo.mission}`;
+      ? `Fresh from the cosmos! Today’s drops: ${latestBooks.map(b => `"${b.title}" by ${b.author}`).join(", ")}. Explore the grid!`
+      : "The cosmic forge is firing up—new books will arrive soon!";
   } else {
     try {
       const prompt = `
-        You are BookShrine, a cosmic AI assistant. Respond to: "${message}"
-        Books: ${JSON.stringify(books.slice(0, 5))} (and ${books.length - 5} more)
+        You are BookShrine, a cosmic AI assistant created by Kofi Fosu. You know everything about Bookshrine:
+        - About: ${bookShrineInfo.about}
+        - Mission: ${bookShrineInfo.mission}
+        - Books: ${JSON.stringify(books.map(b => ({ title: b.title, author: b.author, description: b.description })))}
+        - Genres: ${bookShrineInfo.genres.join(", ")}
+        Respond to this user query: "${message}"
       `;
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -293,9 +347,11 @@ async function chatbotResponse(message) {
       const data = await res.json();
       response = data.choices[0].message.content.trim();
     } catch (error) {
-      response = "Cosmic interference detected... try again!";
+      console.error("OpenAI Error:", error);
+      response = "The cosmic winds are turbulent... I couldn’t fetch a response. Try again!";
     }
   }
+
   return response;
 }
 
@@ -330,7 +386,7 @@ chatbotCore.addEventListener("click", () => {
   clickSound.play();
   chatbotWindow.classList.toggle("hidden");
   if (!chatbotWindow.classList.contains("hidden") && chatbotMessages.children.length === 0) {
-    addMessage("Welcome to BookShrine! New cosmic tales await—ask me what’s new!", "bot");
+    addMessage("Welcome to BookShrine! New cosmic tales arrive daily—ask me what’s new!", "bot");
   }
 });
 
@@ -400,11 +456,19 @@ currentX = window.innerWidth - 70;
 currentY = window.innerHeight - 70;
 setChatbotPosition(currentX, currentY);
 
-// Initial Load with Generation
-(async () => {
-  latestBooks = await autoGenerateBooks(); // Generate books first
-  displayBooks(books); // Then display
-})();
+// Initial Display and Auto-Generation
+displayBooks(books);
+autoGenerateBooks().then(newBooks => {
+  latestBooks = newBooks; // Track latest for chatbot
+});
+
+// Simulate daily drops (client-side, every 24 hours when page is open)
+setInterval(() => {
+  autoGenerateBooks().then(newBooks => {
+    latestBooks = newBooks;
+    console.log("New cosmic batch generated!");
+  });
+}, 24 * 60 * 60 * 1000); // 24 hours
 
 // Resize Handler
 window.addEventListener("resize", () => {
@@ -417,13 +481,14 @@ window.addEventListener("resize", () => {
   }
 });
 
-// IP Address Handling
+// IP Address Handling (No Popup)
 async function handleUserIP() {
   try {
     const response = await fetch("https://api.ipify.org?format=json");
     const data = await response.json();
     const userIP = data.ip;
     const storedIP = localStorage.getItem("userIP");
+
     if (!storedIP || storedIP !== userIP) {
       localStorage.setItem("userIP", userIP);
       console.log("New IP detected:", userIP);
